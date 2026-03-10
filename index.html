@@ -715,24 +715,24 @@ async function getTrackFromPlaylist(cat) {
   const total = cat.total;
 
   // Smart offset: if playlist > 100 tracks, pick a random window of 100
-  // This ensures all tracks in large playlists get a chance over time
   let offset = 0;
   if (total > 100) {
     const maxOffset = total - 100;
-    // Round to nearest 10 for cleaner pagination
     offset = Math.floor(Math.random() * (maxOffset / 10)) * 10;
   }
 
+  // No fields filter — get full track objects to avoid empty responses
   const params = new URLSearchParams({
     limit: 100,
     offset,
     market: 'MX',
-    fields: 'items(track(id,name,uri,popularity,artists,album(images)))',
   });
 
   const data = await spotifyFetch(
     `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${params}`
   );
+
+  console.log(`[Randomusik] Playlist ${playlistId} offset ${offset} → items:`, data?.items?.length, 'first track:', data?.items?.[0]?.track?.name);
 
   if (!data?.items) return null;
 
@@ -903,6 +903,7 @@ async function onSpinEnd() {
 
   try {
     const track = await getTrackFromPlaylist(currentCat);
+    console.log('[Randomusik] track result:', track);
     if (!track) { hideLoading(); showToast('No se encontró canción, intenta de nuevo'); spinning = false; document.getElementById('spinBtn').disabled = false; return; }
 
     currentSong = track;
