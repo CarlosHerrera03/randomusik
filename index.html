@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -435,6 +435,7 @@ const SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state',
   'user-top-read',
+  'playlist-read-public',
 ].join(' ');
 
 // ========== SPOTIFY AUTH (PKCE) ==========
@@ -706,72 +707,68 @@ function setDiff(btn) {
 }
 
 // ========== TRACK SELECTION ALGORITHM ==========
-const usedTrackIds = new Set();   // no song repeats in a session
-let lastArtistId = null;          // no same artist back-to-back
+const usedTrackIds = new Set();
+let lastArtistId = null;
+
+// Curated artist pools per category (10 artists each for variety)
+const CAT_ARTISTS = {
+  "80s Hits":      ["Michael Jackson","Madonna","Prince","a-ha","Cyndi Lauper","Bon Jovi","Toto","The Police","George Michael","David Bowie"],
+  "90s Nostalgia": ["Nirvana","Spice Girls","Backstreet Boys","Ricky Martin","Alanis Morissette","TLC","No Doubt","Oasis","Destiny's Child","Ace of Base"],
+  "Pop 2000s":     ["Britney Spears","Justin Timberlake","Shakira","Beyonce","Eminem","Nelly Furtado","Kelly Clarkson","Usher","Alicia Keys","Coldplay"],
+  "Pop 2010s":     ["Adele","Bruno Mars","Katy Perry","Lady Gaga","One Direction","Ed Sheeran","Taylor Swift","Rihanna","Justin Bieber","The Weeknd"],
+  "Pop 2020s":     ["Bad Bunny","Taylor Swift","The Weeknd","Dua Lipa","Harry Styles","Olivia Rodrigo","Billie Eilish","Ariana Grande","Drake","Peso Pluma"],
+  "Rock Clásico":  ["Queen","Led Zeppelin","AC/DC","The Rolling Stones","Guns N Roses","Metallica","U2","Red Hot Chili Peppers","Aerosmith","Foo Fighters"],
+  "Reggaeton":     ["Daddy Yankee","J Balvin","Bad Bunny","Ozuna","Maluma","Don Omar","Wisin","Nicky Jam","Farruko","Anuel AA"],
+  "Pop Latino":    ["Shakira","Enrique Iglesias","Marc Anthony","Alejandro Sanz","Juanes","Luis Miguel","Gloria Estefan","Ricky Martin","Carlos Vives","Sin Bandera"],
+  "Baladas":       ["Celine Dion","Whitney Houston","Mariah Carey","Michael Bolton","Air Supply","Bonnie Tyler","Phil Collins","Lionel Richie","Foreigner","Journey"],
+  "Grupero":       ["Vicente Fernandez","Los Tigres del Norte","Banda MS","Los Bukis","Joan Sebastian","Jenni Rivera","Intocable","Pepe Aguilar","Marco Antonio Solis","Ana Gabriel"],
+  "Indie / Alt":   ["The Killers","Arctic Monkeys","Radiohead","Arcade Fire","Vampire Weekend","Foster the People","Gotye","Of Monsters and Men","Imagine Dragons","Tame Impala"],
+  "Party Hits":    ["Mark Ronson","Pharrell Williams","Pitbull","LMFAO","Katy Perry","David Guetta","Calvin Harris","Daft Punk","Avicii","Zedd"],
+  "K-Pop":         ["BTS","BLACKPINK","PSY","EXO","TWICE","Stray Kids","aespa","NCT 127","IVE","NewJeans"],
+};
+
+// Difficulty controls how many top tracks per artist are in the pool
+// Easy = top 3 (most famous songs), Normal = top 5, Hard = top 10 (deeper cuts)
+const DIFF_TOP_N = { easy: 3, normal: 5, hard: 10 };
 
 async function getTrackFromPlaylist(cat) {
-  const [minPop] = DIFF_POPULARITY[difficulty];
-  const playlistId = cat.playlistId;
-  const total = cat.total;
+  const artistPool = CAT_ARTISTS[cat.name] || CAT_ARTISTS["Party Hits"];
+  const topN = DIFF_TOP_N[difficulty];
 
-  // Smart offset: if playlist > 100 tracks, pick a random window of 100
-  let offset = 0;
-  if (total > 100) {
-    const maxOffset = total - 100;
-    offset = Math.floor(Math.random() * (maxOffset / 10)) * 10;
+  // Shuffle the artist pool for variety each round
+  const shuffled = [...artistPool].sort(() => Math.random() - 0.5);
+
+  for (const artistName of shuffled.slice(0, 5)) {
+    // Find the artist on Spotify
+    const searchParams = new URLSearchParams({ q: artistName, type: "artist", limit: 1, market: "MX" });
+    const searchData = await spotifyFetch("https://api.spotify.com/v1/search?" + searchParams);
+    const artist = searchData?.artists?.items?.[0];
+    if (!artist) continue;
+
+    // Skip if this artist played last round (anti-repeat)
+    if (artist.id === lastArtistId) continue;
+
+    // Get their top tracks in Mexico
+    const topData = await spotifyFetch("https://api.spotify.com/v1/artists/" + artist.id + "/top-tracks?market=MX");
+    const topTracks = topData?.tracks;
+    if (!topTracks || topTracks.length === 0) continue;
+
+    // Take top N based on difficulty, exclude already-played tracks
+    const candidates = topTracks
+      .slice(0, topN)
+      .filter(t => t.uri && !usedTrackIds.has(t.id));
+
+    if (candidates.length === 0) continue;
+
+    // Pick a random track from candidates
+    const track = candidates[Math.floor(Math.random() * candidates.length)];
+    usedTrackIds.add(track.id);
+    lastArtistId = artist.id;
+    console.log("[Randomusik] Track found:", track.name, "-", artist.name);
+    return track;
   }
 
-  // No fields filter — get full track objects to avoid empty responses
-  const params = new URLSearchParams({
-    limit: 100,
-    offset,
-    market: 'MX',
-  });
-
-  const data = await spotifyFetch(
-    `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${params}`
-  );
-
-  console.log(`[Randomusik] Playlist ${playlistId} offset ${offset} → items:`, data?.items?.length, 'first track:', data?.items?.[0]?.track?.name);
-
-  if (!data?.items) return null;
-
-  // Extract valid tracks
-  let tracks = data.items
-    .map(i => i.track)
-    .filter(t => t && t.uri && t.id);
-
-  if (tracks.length === 0) return null;
-
-  // Apply difficulty filter (popularity score)
-  const byDifficulty = tracks.filter(t => t.popularity >= minPop);
-
-  // Use difficulty-filtered pool if it has options, otherwise fall back to all tracks
-  let pool = byDifficulty.length >= 3 ? byDifficulty : tracks;
-
-  // Remove already-played songs this session
-  pool = pool.filter(t => !usedTrackIds.has(t.id));
-
-  // If pool is empty (all songs played), reset and use full list
-  if (pool.length === 0) pool = tracks;
-
-  // Avoid same artist as last round
-  const noRepeatArtist = pool.filter(t => {
-    const artistId = t.artists?.[0]?.id;
-    return artistId !== lastArtistId;
-  });
-
-  // Use no-repeat-artist pool if available, otherwise allow repeat
-  const finalPool = noRepeatArtist.length > 0 ? noRepeatArtist : pool;
-
-  // Pick random track from final pool
-  const track = finalPool[Math.floor(Math.random() * finalPool.length)];
-
-  // Update state
-  usedTrackIds.add(track.id);
-  lastArtistId = track.artists?.[0]?.id || null;
-
-  return track;
+  return null;
 }
 
 // ========== PLAY TRACK ==========
