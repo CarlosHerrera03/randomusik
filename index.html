@@ -583,19 +583,21 @@ function msToTime(ms) {
 }
 
 // ========== DATA ==========
+// playlistId: official Spotify playlist | total: track count for smart offset
 const CATEGORIES = [
-  { name: "80s Hits",     emoji: "🕹️", color: "#a855f7", genres: ["80s","new wave","synth-pop"], decade: "1980s" },
-  { name: "90s Nostalgia",emoji: "📼", color: "#ec4899", genres: ["90s","grunge","pop"], decade: "1990s" },
-  { name: "Pop 2000s",    emoji: "💿", color: "#f59e0b", genres: ["pop","r&b"], decade: "2000s" },
-  { name: "Rock Clásico", emoji: "🎸", color: "#ef4444", genres: ["rock","classic rock","hard rock"], seed_genres: "rock,classic-rock" },
-  { name: "Reggaeton",    emoji: "🔥", color: "#f97316", genres: ["reggaeton","latin"], seed_genres: "reggaeton,latin" },
-  { name: "Pop Latino",   emoji: "🌟", color: "#22d3ee", genres: ["latin pop","latin"], seed_genres: "latin" },
-  { name: "Pop 2020s",    emoji: "✨", color: "#4ade80", genres: ["pop","electropop"], decade: "2020s" },
-  { name: "Baladas",      emoji: "💜", color: "#818cf8", genres: ["ballad","soft rock","pop"], seed_genres: "romance,pop" },
-  { name: "Grupero",      emoji: "🎺", color: "#fb923c", genres: ["grupero","ranchera","norteno"], seed_genres: "latin" },
-  { name: "Indie / Alt",  emoji: "🎵", color: "#a3e635", genres: ["indie pop","indie rock","alternative"], seed_genres: "indie,alt-rock" },
-  { name: "Party Hits",   emoji: "🎉", color: "#f472b6", genres: ["dance pop","electropop","pop"], seed_genres: "pop,dance" },
-  { name: "K-Pop",        emoji: "⭐", color: "#67e8f9", genres: ["k-pop"], seed_genres: "k-pop" },
+  { name: "80s Hits",      emoji: "🕹️", color: "#a855f7", playlistId: "37i9dQZF1DX4UtSsGT1Sbe", total: 100 },
+  { name: "90s Nostalgia", emoji: "📼", color: "#ec4899", playlistId: "37i9dQZF1DXbTxeAdrVG2l", total: 100 },
+  { name: "Pop 2000s",     emoji: "💿", color: "#f59e0b", playlistId: "37i9dQZF1DX4o1oenSJRJd", total: 100 },
+  { name: "Pop 2010s",     emoji: "📱", color: "#06b6d4", playlistId: "37i9dQZF1DX2M1RktxUUHG", total: 100 },
+  { name: "Pop 2020s",     emoji: "✨", color: "#4ade80", playlistId: "37i9dQZF1DX5Ejj0EkURtP", total: 100 },
+  { name: "Rock Clásico",  emoji: "🎸", color: "#ef4444", playlistId: "37i9dQZF1DWXRqgorJj26U", total: 200 },
+  { name: "Reggaeton",     emoji: "🔥", color: "#f97316", playlistId: "37i9dQZF1DWY7IeIP1cdjF", total: 50  },
+  { name: "Pop Latino",    emoji: "🌟", color: "#22d3ee", playlistId: "37i9dQZF1DX6ThddIjWuGT", total: 100 },
+  { name: "Baladas",       emoji: "💜", color: "#818cf8", playlistId: "37i9dQZF1DX09mi3a4Zmox", total: 100 },
+  { name: "Grupero",       emoji: "🎺", color: "#fb923c", playlistId: "37i9dQZF1DX905zIRtblN3", total: 50  },
+  { name: "Indie / Alt",   emoji: "🎵", color: "#a3e635", playlistId: "37i9dQZF1DWWEcRhUVtL8n", total: 100 },
+  { name: "Party Hits",    emoji: "🎉", color: "#f472b6", playlistId: "37i9dQZF1DXa2PvUpywmrr", total: 100 },
+  { name: "K-Pop",         emoji: "⭐", color: "#67e8f9", playlistId: "37i9dQZF1DX9tPFwDMOaN1", total: 50  },
 ];
 
 const AVATARS = ["🎵","🎸","🎹","🎺","🥁","🎷","🎻","🎤"];
@@ -703,32 +705,73 @@ function setDiff(btn) {
   difficulty = btn.dataset.diff;
 }
 
-// ========== SPOTIFY: SEARCH TRACK ==========
-async function searchTrack(cat) {
-  const [minPop, maxPop] = DIFF_POPULARITY[difficulty];
-  const seed = cat.seed_genres || cat.genres.slice(0, 2).join(',');
+// ========== TRACK SELECTION ALGORITHM ==========
+const usedTrackIds = new Set();   // no song repeats in a session
+let lastArtistId = null;          // no same artist back-to-back
 
-  // Use recommendations endpoint for genre-based selection
-  const params = new URLSearchParams({
-    seed_genres: seed,
-    min_popularity: minPop,
-    max_popularity: maxPop,
-    limit: 20,
-    market: 'MX',
-  });
+async function getTrackFromPlaylist(cat) {
+  const [minPop] = DIFF_POPULARITY[difficulty];
+  const playlistId = cat.playlistId;
+  const total = cat.total;
 
-  const data = await spotifyFetch(`https://api.spotify.com/v1/recommendations?${params}`);
-  if (!data || !data.tracks || data.tracks.length === 0) {
-    // Fallback: search by genre name
-    const q = encodeURIComponent(`genre:${cat.genres[0]}`);
-    const fallback = await spotifyFetch(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=20&market=MX`);
-    if (!fallback?.tracks?.items?.length) return null;
-    const items = fallback.tracks.items.filter(t => t.popularity >= minPop);
-    return items[Math.floor(Math.random() * items.length)] || items[0];
+  // Smart offset: if playlist > 100 tracks, pick a random window of 100
+  // This ensures all tracks in large playlists get a chance over time
+  let offset = 0;
+  if (total > 100) {
+    const maxOffset = total - 100;
+    // Round to nearest 10 for cleaner pagination
+    offset = Math.floor(Math.random() * (maxOffset / 10)) * 10;
   }
 
-  const tracks = data.tracks.filter(t => t.uri);
-  return tracks[Math.floor(Math.random() * tracks.length)] || tracks[0];
+  const params = new URLSearchParams({
+    limit: 100,
+    offset,
+    market: 'MX',
+    fields: 'items(track(id,name,uri,popularity,artists,album(images)))',
+  });
+
+  const data = await spotifyFetch(
+    `https://api.spotify.com/v1/playlists/${playlistId}/tracks?${params}`
+  );
+
+  if (!data?.items) return null;
+
+  // Extract valid tracks
+  let tracks = data.items
+    .map(i => i.track)
+    .filter(t => t && t.uri && t.id);
+
+  if (tracks.length === 0) return null;
+
+  // Apply difficulty filter (popularity score)
+  const byDifficulty = tracks.filter(t => t.popularity >= minPop);
+
+  // Use difficulty-filtered pool if it has options, otherwise fall back to all tracks
+  let pool = byDifficulty.length >= 3 ? byDifficulty : tracks;
+
+  // Remove already-played songs this session
+  pool = pool.filter(t => !usedTrackIds.has(t.id));
+
+  // If pool is empty (all songs played), reset and use full list
+  if (pool.length === 0) pool = tracks;
+
+  // Avoid same artist as last round
+  const noRepeatArtist = pool.filter(t => {
+    const artistId = t.artists?.[0]?.id;
+    return artistId !== lastArtistId;
+  });
+
+  // Use no-repeat-artist pool if available, otherwise allow repeat
+  const finalPool = noRepeatArtist.length > 0 ? noRepeatArtist : pool;
+
+  // Pick random track from final pool
+  const track = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+  // Update state
+  usedTrackIds.add(track.id);
+  lastArtistId = track.artists?.[0]?.id || null;
+
+  return track;
 }
 
 // ========== PLAY TRACK ==========
@@ -859,7 +902,7 @@ async function onSpinEnd() {
   showLoading(`Buscando ${currentCat.emoji} ${currentCat.name}...`);
 
   try {
-    const track = await searchTrack(currentCat);
+    const track = await getTrackFromPlaylist(currentCat);
     if (!track) { hideLoading(); showToast('No se encontró canción, intenta de nuevo'); spinning = false; document.getElementById('spinBtn').disabled = false; return; }
 
     currentSong = track;
@@ -998,6 +1041,8 @@ function resetGame() {
 function startGame() {
   if (selectedCats.length < 3) { showToast('Selecciona al menos 3 categorías'); return; }
   scores = {}; round = 1;
+  usedTrackIds.clear();
+  lastArtistId = null;
   players.forEach(p => scores[p.name] = 0);
   buildWheel();
   renderScoreboard();
