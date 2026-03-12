@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Randomusik</title>
+<title>Randomusik — Preview (30s)</title>
 <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -435,17 +435,12 @@
   </div>
   <p class="tagline">Gira la ruleta, suena la canción, ¡adivina y gana!</p>
 
-  <button class="btn-spotify" id="spotifyBtn" onclick="connectSpotify()">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-    Conectar con Spotify
-  </button>
-
-  <div class="spotify-status disconnected" id="spotifyStatus">
+  <div class="spotify-status connected" style="margin-bottom:0.5rem">
     <div class="status-dot"></div>
-    <span id="spotifyStatusText">No conectado</span>
+    <span>Vista previa 30s · Sin login · Partidas ilimitadas</span>
   </div>
 
-  <button class="btn-primary hidden" id="playBtn" onclick="goTo('setup')">🎲 Crear Partida</button>
+  <button class="btn-primary" id="playBtn" onclick="goTo('setup')">🎲 Crear Partida</button>
 </div>
 
 <!-- ========== SETUP ========== -->
@@ -544,151 +539,23 @@
   <button class="btn-primary" onclick="resetGame()" style="margin-top:0.5rem">🔄 Jugar de nuevo</button>
 </div>
 
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
 <script>
-// ========== CONFIG ==========
-const CLIENT_ID = '7c933344aa48492d8072c6f133997ad9';
-const REDIRECT_URI = 'https://randomusik.vercel.app/callback';
-const SCOPES = [
-  'streaming',
-  'user-read-email',
-  'user-read-private',
-  'user-read-playback-state',
-  'user-modify-playback-state',
-  'user-top-read',
-].join(' ');
+// ========== PREVIEW MODE — sin login, 30s, infinitas partidas en paralelo ==========
 
-// ========== SPOTIFY AUTH (PKCE) ==========
-async function generateCodeVerifier() {
-  const array = new Uint8Array(64);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-async function generateCodeChallenge(verifier) {
-  const data = new TextEncoder().encode(verifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-async function connectSpotify() {
-  const verifier = await generateCodeVerifier();
-  const challenge = await generateCodeChallenge(verifier);
-  sessionStorage.setItem('pkce_verifier', verifier);
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    response_type: 'code',
-    redirect_uri: REDIRECT_URI,
-    scope: SCOPES,
-    code_challenge_method: 'S256',
-    code_challenge: challenge,
-  });
-  window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
-}
-
-async function exchangeToken(code) {
-  const verifier = sessionStorage.getItem('pkce_verifier');
-  const body = new URLSearchParams({
-    client_id: CLIENT_ID,
-    grant_type: 'authorization_code',
-    code,
-    redirect_uri: REDIRECT_URI,
-    code_verifier: verifier,
-  });
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-  const data = await res.json();
-  if (data.access_token) {
-    sessionStorage.setItem('spotify_token', data.access_token);
-    sessionStorage.setItem('spotify_refresh', data.refresh_token || '');
-    window.history.replaceState({}, '', '/');
-    return data.access_token;
-  }
-  return null;
-}
-
-async function refreshToken() {
-  const refresh = sessionStorage.getItem('spotify_refresh');
-  if (!refresh) return null;
-  const body = new URLSearchParams({
-    client_id: CLIENT_ID,
-    grant_type: 'refresh_token',
-    refresh_token: refresh,
-  });
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-  const data = await res.json();
-  if (data.access_token) {
-    sessionStorage.setItem('spotify_token', data.access_token);
-    return data.access_token;
-  }
-  return null;
-}
-
-function getToken() { return sessionStorage.getItem('spotify_token'); }
-
-async function spotifyFetch(url, options = {}) {
-  let token = getToken();
-  let res = await fetch(url, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...options.headers } });
-  if (res.status === 401) {
-    token = await refreshToken();
-    if (!token) { showToast('⚠️ Sesión expirada, reconecta Spotify'); return null; }
-    res = await fetch(url, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...options.headers } });
-  }
-  if (res.status === 204 || res.status === 202) return {};
-  return res.json().catch(() => ({}));
-}
-
-// ========== SPOTIFY PLAYER ==========
-let player = null;
-let deviceId = null;
-let playerReady = false;
-
-window.onSpotifyWebPlaybackSDKReady = () => {
-  const token = getToken();
-  if (!token) return;
-  player = new Spotify.Player({
-    name: 'Randomusik 🎵',
-    getOAuthToken: cb => {
-      const t = getToken();
-      if (t) cb(t); else refreshToken().then(nt => { if (nt) cb(nt); });
-    },
-    volume: 0.8,
-  });
-  player.addListener('ready', ({ device_id }) => {
-    deviceId = device_id;
-    playerReady = true;
-    console.log('Spotify player ready:', device_id);
-  });
-  player.addListener('not_ready', () => { playerReady = false; });
-  player.addListener('player_state_changed', onPlayerStateChanged);
-  player.connect();
-};
-
+// ========== AUDIO PLAYER ==========
+let audioPlayer = new Audio();
+audioPlayer.volume = 0.85;
 let progressInterval = null;
-let trackDuration = 0;
 
-function onPlayerStateChanged(state) {
-  if (!state) return;
-  const track = state.track_window?.current_track;
-  if (!track) return;
-  trackDuration = state.duration;
+audioPlayer.addEventListener('timeupdate', () => {
+  const pos = audioPlayer.currentTime * 1000;
+  const dur = audioPlayer.duration * 1000 || 30000;
+  updateProgress(pos, dur);
+});
+audioPlayer.addEventListener('ended', () => {
   if (progressInterval) clearInterval(progressInterval);
-  if (!state.paused) {
-    let pos = state.position;
-    progressInterval = setInterval(() => {
-      pos += 500;
-      updateProgress(pos, trackDuration);
-      if (pos >= trackDuration) clearInterval(progressInterval);
-    }, 500);
-  }
-  updateProgress(state.position, state.duration);
-}
+  updateProgress(30000, 30000);
+});
 
 function updateProgress(pos, dur) {
   if (!dur) return;
@@ -857,23 +724,72 @@ function getTrackFromCatalog(cat) {
   return track;
 }
 
-// ========== PLAY TRACK ==========
+// ========== PLAY TRACK (preview 30s) ==========
 async function playTrack(uri) {
-  if (!deviceId) {
-    showToast('⚠️ Spotify player no listo, espera un momento');
+  const trackId = uri.split(':')[2];
+  try {
+    const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: { Authorization: 'Bearer ' + await getPublicToken() }
+    });
+    const data = await res.json();
+    const previewUrl = data?.preview_url;
+    if (!previewUrl) {
+      showToast('⚠️ Preview no disponible para esta canción, saltando...');
+      return false;
+    }
+    // Album art
+    const albumImg = data?.album?.images?.[0]?.url;
+    if (albumImg) {
+      const img = document.getElementById('albumArt');
+      img.src = albumImg;
+      img.classList.remove('hidden');
+      document.getElementById('albumPlaceholder').classList.add('hidden');
+    }
+    audioPlayer.src = previewUrl;
+    audioPlayer.currentTime = 0;
+    await audioPlayer.play();
+    return true;
+  } catch(e) {
+    console.error('Preview error:', e);
+    showToast('⚠️ Error al cargar preview');
     return false;
   }
-  const res = await spotifyFetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ uris: [uri] }),
-  });
-  return true;
 }
 
 async function stopPlayback() {
-  if (!deviceId) return;
-  await spotifyFetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, { method: 'PUT' });
-  if (progressInterval) clearInterval(progressInterval);
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0;
+}
+
+// Token público anónimo de Spotify (Client Credentials — solo lectura de metadatos)
+let _pubToken = null;
+let _pubTokenExp = 0;
+async function getPublicToken() {
+  if (_pubToken && Date.now() < _pubTokenExp) return _pubToken;
+  // Client ID público — solo para metadata, no para reproducción
+  const CLIENT_ID = '7c933344aa48492d8072c6f133997ad9';
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=`
+  });
+  // Fallback: usar token de búsqueda anónima vía embed
+  const data = await res.json();
+  if (data.access_token) {
+    _pubToken = data.access_token;
+    _pubTokenExp = Date.now() + (data.expires_in - 60) * 1000;
+    return _pubToken;
+  }
+  // Si falla, usar Open API embed token
+  return await getEmbedToken();
+}
+
+async function getEmbedToken() {
+  const r = await fetch('https://open.spotify.com/get_access_token?reason=transport&productType=web_player');
+  const d = await r.json();
+  _pubToken = d.accessToken;
+  _pubTokenExp = Date.now() + 55 * 60 * 1000;
+  return _pubToken;
 }
 
 // ========== WHEEL ==========
@@ -1049,22 +965,11 @@ async function loadPlayingScreen(track, cat) {
   document.getElementById('songName').textContent = track.name;
   document.getElementById('artistName').textContent = track.artist || '';
 
-  // Album art - fetch from Spotify track endpoint
+  // Album art already loaded in playTrack via preview_url fetch
   const img = document.getElementById('albumArt');
   const placeholder = document.getElementById('albumPlaceholder');
-  img.classList.add('hidden');
-  placeholder.classList.remove('hidden');
-  try {
-    const trackId = track.uri.split(':')[2];
-    const trackData = await spotifyFetch('https://api.spotify.com/v1/tracks/' + trackId);
-    const albumImg = trackData?.album?.images?.[0]?.url;
-    if (albumImg) {
-      img.src = albumImg;
-      img.classList.remove('hidden');
-      placeholder.classList.add('hidden');
-    }
-  } catch(e) {
-    console.log('Album art not available');
+  if (!img.src || img.classList.contains('hidden')) {
+    placeholder.classList.remove('hidden');
   }
 }
 
@@ -1223,80 +1128,12 @@ function startGame() {
 }
 
 // ========== SPOTIFY STATUS UI ==========
-function setSpotifyConnected(name) {
-  const status = document.getElementById('spotifyStatus');
-  status.className = 'spotify-status connected';
-  document.getElementById('spotifyBtn').classList.add('hidden');
-
-  const playBtn = document.getElementById('playBtn');
-  playBtn.classList.remove('hidden');
-  playBtn.disabled = true;
-  playBtn.textContent = '⏳ Cargando reproductor...';
-
-  // Poll until SDK player is ready (max 15s)
-  let attempts = 0;
-  const maxAttempts = 30;
-  const poll = setInterval(() => {
-    attempts++;
-    if (playerReady && deviceId) {
-      clearInterval(poll);
-      playBtn.disabled = false;
-      playBtn.textContent = '🎲 Crear Partida';
-      document.getElementById('spotifyStatusText').textContent = `Conectado como ${name}`;
-      showToast('✅ ¡Listo para jugar!');
-    } else if (attempts >= maxAttempts) {
-      clearInterval(poll);
-      // Try reinitializing the SDK
-      if (window.Spotify) window.onSpotifyWebPlaybackSDKReady();
-      let retryAttempts = 0;
-      const retryPoll = setInterval(() => {
-        retryAttempts++;
-        if (playerReady && deviceId) {
-          clearInterval(retryPoll);
-          playBtn.disabled = false;
-          playBtn.textContent = '🎲 Crear Partida';
-          document.getElementById('spotifyStatusText').textContent = `Conectado como ${name}`;
-          showToast('✅ ¡Listo para jugar!');
-        } else if (retryAttempts >= 20) {
-          clearInterval(retryPoll);
-          playBtn.disabled = false;
-          playBtn.textContent = '🎲 Crear Partida';
-          document.getElementById('spotifyStatusText').textContent = `Conectado como ${name} (reconectar si no suena)`;
-        }
-      }, 500);
-    }
-  }, 500);
-}
-
 // ========== INIT ==========
 spawnNotes();
 renderPlayers();
 renderCats();
-
-// Handle OAuth callback
-(async () => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (code) {
-    showLoading('Conectando con Spotify...');
-    const token = await exchangeToken(code);
-    if (token) {
-      const me = await spotifyFetch('https://api.spotify.com/v1/me');
-      if (me?.display_name) setSpotifyConnected(me.display_name);
-      // Init player now that we have token
-      if (window.Spotify) window.onSpotifyWebPlaybackSDKReady();
-      showToast('✅ ¡Spotify conectado!');
-    }
-    hideLoading();
-  } else if (getToken()) {
-    // Already have token
-    const me = await spotifyFetch('https://api.spotify.com/v1/me');
-    if (me?.display_name) {
-      setSpotifyConnected(me.display_name);
-      if (window.Spotify) window.onSpotifyWebPlaybackSDKReady();
-    }
-  }
-})();
+// Pre-warm token silently
+getPublicToken().catch(() => {});
 </script>
 </body>
 </html>
