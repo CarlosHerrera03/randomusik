@@ -1021,9 +1021,46 @@ function startGame() {
 function setSpotifyConnected(name) {
   const status = document.getElementById('spotifyStatus');
   status.className = 'spotify-status connected';
-  document.getElementById('spotifyStatusText').textContent = `Conectado como ${name}`;
   document.getElementById('spotifyBtn').classList.add('hidden');
-  document.getElementById('playBtn').classList.remove('hidden');
+
+  const playBtn = document.getElementById('playBtn');
+  playBtn.classList.remove('hidden');
+  playBtn.disabled = true;
+  playBtn.textContent = '⏳ Cargando reproductor...';
+
+  // Poll until SDK player is ready (max 15s)
+  let attempts = 0;
+  const maxAttempts = 30;
+  const poll = setInterval(() => {
+    attempts++;
+    if (playerReady && deviceId) {
+      clearInterval(poll);
+      playBtn.disabled = false;
+      playBtn.textContent = '🎲 Crear Partida';
+      document.getElementById('spotifyStatusText').textContent = `Conectado como ${name}`;
+      showToast('✅ ¡Listo para jugar!');
+    } else if (attempts >= maxAttempts) {
+      clearInterval(poll);
+      // Try reinitializing the SDK
+      if (window.Spotify) window.onSpotifyWebPlaybackSDKReady();
+      let retryAttempts = 0;
+      const retryPoll = setInterval(() => {
+        retryAttempts++;
+        if (playerReady && deviceId) {
+          clearInterval(retryPoll);
+          playBtn.disabled = false;
+          playBtn.textContent = '🎲 Crear Partida';
+          document.getElementById('spotifyStatusText').textContent = `Conectado como ${name}`;
+          showToast('✅ ¡Listo para jugar!');
+        } else if (retryAttempts >= 20) {
+          clearInterval(retryPoll);
+          playBtn.disabled = false;
+          playBtn.textContent = '🎲 Crear Partida';
+          document.getElementById('spotifyStatusText').textContent = `Conectado como ${name} (reconectar si no suena)`;
+        }
+      }, 500);
+    }
+  }, 500);
 }
 
 // ========== INIT ==========
