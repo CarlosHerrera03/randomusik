@@ -207,33 +207,122 @@
     border-radius: 50px; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
   }
 
-  /* Album art / music visual */
+  /* Mystery animation while playing */
+  .mystery-wrap {
+    position: relative; width: 220px; height: 220px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Rays behind disco ball */
+  .mystery-rays {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(
+      rgba(147,51,234,0.3) 0deg, transparent 20deg,
+      rgba(236,72,153,0.3) 40deg, transparent 60deg,
+      rgba(34,211,238,0.3) 80deg, transparent 100deg,
+      rgba(251,191,36,0.3) 120deg, transparent 140deg,
+      rgba(147,51,234,0.3) 160deg, transparent 180deg,
+      rgba(236,72,153,0.3) 200deg, transparent 220deg,
+      rgba(34,211,238,0.3) 240deg, transparent 260deg,
+      rgba(251,191,36,0.3) 280deg, transparent 300deg,
+      rgba(147,51,234,0.3) 320deg, transparent 340deg,
+      rgba(236,72,153,0.3) 360deg
+    );
+    animation: spinRays 3s linear infinite;
+    opacity: 0.7;
+  }
+  @keyframes spinRays { to { transform: rotate(360deg); } }
+
+  /* Disco ball */
+  .disco-ball {
+    position: relative; z-index: 2;
+    width: 130px; height: 130px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff, #b0b0c0 30%, #606080 60%, #202030);
+    box-shadow:
+      0 0 30px rgba(147,51,234,0.8),
+      0 0 60px rgba(236,72,153,0.4),
+      inset -8px -8px 20px rgba(0,0,0,0.5);
+    animation: spinDisco 2s linear infinite;
+    overflow: hidden;
+  }
+  .disco-ball::before {
+    content: '';
+    position: absolute; inset: 0; border-radius: 50%;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 8px, rgba(0,0,0,0.15) 8px, rgba(0,0,0,0.15) 9px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 8px, rgba(0,0,0,0.15) 8px, rgba(0,0,0,0.15) 9px
+    );
+  }
+  .disco-ball::after {
+    content: '';
+    position: absolute; top: 15%; left: 20%; width: 30%; height: 20%;
+    background: rgba(255,255,255,0.6); border-radius: 50%;
+    filter: blur(4px);
+  }
+  @keyframes spinDisco { to { transform: rotateY(360deg); } }
+
+  /* Light dots bouncing around */
+  .disco-light {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    animation: bounceDot 1.5s ease-in-out infinite;
+  }
+  .disco-light:nth-child(1) { background: #a855f7; top: 20%; left: 15%; animation-delay: 0s; }
+  .disco-light:nth-child(2) { background: #ec4899; top: 60%; left: 80%; animation-delay: 0.3s; }
+  .disco-light:nth-child(3) { background: #22d3ee; top: 75%; left: 20%; animation-delay: 0.6s; }
+  .disco-light:nth-child(4) { background: #fbbf24; top: 25%; left: 70%; animation-delay: 0.9s; }
+  .disco-light:nth-child(5) { background: #4ade80; top: 50%; left: 50%; animation-delay: 1.2s; }
+  @keyframes bounceDot {
+    0%, 100% { transform: translate(0,0) scale(1); opacity: 0.9; }
+    50% { transform: translate(calc(var(--dx,15px)), calc(var(--dy,-15px))) scale(1.5); opacity: 0.4; }
+  }
+
+  /* Sound waves */
+  .sound-waves {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    height: 40px;
+  }
+  .wave-bar {
+    width: 5px; border-radius: 3px;
+    background: linear-gradient(to top, var(--purple), var(--pink));
+    animation: waveBounce 0.6s ease-in-out infinite alternate;
+  }
+  .wave-bar:nth-child(1) { height: 15px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { height: 30px; animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { height: 35px; animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { height: 18px; animation-delay: 0.4s; }
+  .wave-bar:nth-child(6) { height: 28px; animation-delay: 0.15s; }
+  .wave-bar:nth-child(7) { height: 12px; animation-delay: 0.25s; }
+  @keyframes waveBounce {
+    from { transform: scaleY(0.4); opacity: 0.6; }
+    to { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* Album art shown after reveal */
   .album-wrap {
     position: relative; width: 200px; height: 200px; flex-shrink: 0;
+    display: none;
   }
+  .album-wrap.visible { display: block; }
   .album-wrap::before {
     content: ''; position: absolute; inset: -10px; border-radius: 50%;
     border: 2px solid var(--purple); opacity: 0;
     animation: sonarPulse 1.8s ease-out infinite;
-  }
-  .album-wrap::after {
-    content: ''; position: absolute; inset: -22px; border-radius: 50%;
-    border: 2px solid var(--pink); opacity: 0;
-    animation: sonarPulse 1.8s 0.6s ease-out infinite;
   }
   @keyframes sonarPulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.2); opacity: 0; } }
   .album-art {
     width: 200px; height: 200px; border-radius: 16px;
     object-fit: cover; display: block;
     box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    animation: revealArt 0.5s cubic-bezier(0.34,1.56,0.64,1);
   }
+  @keyframes revealArt { from { opacity: 0; transform: scale(0.8) rotate(-5deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
   .album-placeholder {
     width: 200px; height: 200px; border-radius: 16px;
     background: var(--card); border: 1px solid rgba(255,255,255,0.1);
     display: flex; align-items: center; justify-content: center; font-size: 5rem;
-    animation: spinSlow 8s linear infinite;
   }
-  @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
   /* Progress bar */
   .progress-bar-wrap { width: 100%; max-width: 300px; }
@@ -259,16 +348,29 @@
   }
   .reveal-btn:hover { transform: translateY(-2px); }
 
-  .point-btns { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; max-width: 360px; }
-  .point-btn {
-    background: var(--card); border: 2px solid rgba(255,255,255,0.1); border-radius: 14px;
-    padding: 0.7rem 1rem; display: flex; align-items: center; justify-content: space-between;
-    cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700;
-    color: var(--text); transition: all 0.2s;
+  .point-btns { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 380px; }
+  .point-player-row {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+    padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem;
   }
-  .point-btn:hover:not(:disabled) { border-color: var(--green); background: rgba(74,222,128,0.07); }
-  .point-btn:disabled { opacity: 0.6; }
-  .point-badge { background: var(--green); color: #0a0a0f; border-radius: 50px; padding: 0.15rem 0.6rem; font-size: 0.8rem; font-weight: 900; }
+  .point-player-name { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .point-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+  .pa-btn {
+    border: none; border-radius: 8px; padding: 0.35rem 0.55rem;
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 900;
+    cursor: pointer; transition: all 0.15s; min-width: 38px;
+  }
+  .pa-btn.plus { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+  .pa-btn.plus:hover { background: rgba(74,222,128,0.3); }
+  .pa-btn.plus.active { background: #4ade80; color: #0a0a0f; }
+  .pa-btn.minus { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .pa-btn.minus:hover { background: rgba(239,68,68,0.25); }
+  .pa-btn.minus.active { background: #ef4444; color: white; }
+  .point-score-badge {
+    min-width: 32px; text-align: center;
+    font-family: 'Boogaloo', cursive; font-size: 1.1rem;
+    color: var(--yellow);
+  }
 
   .next-btn {
     background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
@@ -390,6 +492,25 @@
 <div class="screen" id="playing">
   <div class="category-tag" id="playingCat">🎸 Rock Clásico</div>
 
+  <!-- Mystery animation (shown while playing) -->
+  <div class="mystery-wrap" id="mysteryWrap">
+    <div class="mystery-rays"></div>
+    <div class="disco-light" style="--dx:20px;--dy:-20px"></div>
+    <div class="disco-light" style="--dx:-15px;--dy:18px"></div>
+    <div class="disco-light" style="--dx:18px;--dy:15px"></div>
+    <div class="disco-light" style="--dx:-20px;--dy:-12px"></div>
+    <div class="disco-light" style="--dx:10px;--dy:20px"></div>
+    <div class="disco-ball"></div>
+  </div>
+
+  <!-- Sound waves -->
+  <div class="sound-waves" id="soundWaves">
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+
+  <!-- Album art (hidden until reveal) -->
   <div class="album-wrap" id="albumWrap">
     <div class="album-placeholder" id="albumPlaceholder">💿</div>
     <img class="album-art hidden" id="albumArt" alt="Album art">
@@ -837,9 +958,28 @@ function spinWheel() {
   if (spinning) return;
   spinning = true;
   document.getElementById('spinBtn').disabled = true;
-  const extraSpins = 5 + Math.random() * 5;
-  const targetAngle = wheelAngle + (2 * Math.PI * extraSpins) + (Math.random() * 2 * Math.PI);
-  const duration = 3000 + Math.random() * 1000;
+
+  const n = wheelSegments.length;
+  const arc = (2 * Math.PI) / n;
+
+  // Pick winning segment FIRST, then calculate target angle
+  const winningIdx = Math.floor(Math.random() * n);
+
+  // Center of winning segment should land at the pointer (top = angle 0 in our rotated frame)
+  // Segment i center in world coords: wheelAngle + i*arc + arc/2 - PI/2
+  // We want that center to be at -PI/2 (top), so:
+  // finalAngle + winningIdx*arc + arc/2 - PI/2 = -PI/2 + k*2PI
+  // finalAngle = -winningIdx*arc - arc/2 + k*2PI
+  const desiredAngle = ((-winningIdx * arc - arc / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+
+  // Calculate delta from current angle, always spin forward
+  const currentNorm = ((wheelAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  let delta = desiredAngle - currentNorm;
+  if (delta <= 0.01) delta += 2 * Math.PI;
+  const extraSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+  const targetAngle = wheelAngle + delta + extraSpins;
+
+  const duration = 3500 + Math.random() * 1000;
   const startAngle = wheelAngle;
   const startTime = performance.now();
   function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
@@ -848,18 +988,18 @@ function spinWheel() {
     const progress = Math.min(elapsed / duration, 1);
     wheelAngle = startAngle + (targetAngle - startAngle) * easeOut(progress);
     drawWheel(wheelAngle);
-    if (progress < 1) requestAnimationFrame(animate);
-    else { wheelAngle = targetAngle % (2 * Math.PI); onSpinEnd(); }
+    if (progress < 1) { requestAnimationFrame(animate); }
+    else {
+      wheelAngle = desiredAngle;
+      drawWheel(wheelAngle);
+      onSpinEnd(winningIdx);
+    }
   }
   requestAnimationFrame(animate);
 }
 
-async function onSpinEnd() {
-  const n = wheelSegments.length;
-  const arc = (2 * Math.PI) / n;
-  const normalized = (((-wheelAngle + Math.PI / 2) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  const idx = Math.floor(normalized / arc) % n;
-  currentCat = wheelSegments[idx];
+async function onSpinEnd(winningIdx) {
+  currentCat = wheelSegments[winningIdx];
 
   showLoading(`${currentCat.emoji} ${currentCat.name}`);
 
@@ -885,11 +1025,16 @@ async function onSpinEnd() {
 
 // ========== PLAYING SCREEN ==========
 async function loadPlayingScreen(track, cat) {
-  // Reset state
+  // Reset mystery/album state
+  document.getElementById('mysteryWrap').style.display = '';
+  document.getElementById('soundWaves').style.display = '';
+  document.getElementById('albumWrap').classList.remove('visible');
   document.getElementById('songReveal').classList.add('hidden');
   document.getElementById('revealBtn').classList.remove('hidden');
   document.getElementById('pointBtns').classList.add('hidden');
   document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('nextBtn').textContent = 'Siguiente ronda →';
+  document.getElementById('nextBtn').onclick = nextRound;
   document.getElementById('progressFill').style.width = '0%';
   document.getElementById('timeElapsed').textContent = '0:00';
   document.getElementById('timeDuration').textContent = '0:00';
@@ -924,6 +1069,10 @@ async function loadPlayingScreen(track, cat) {
 }
 
 function revealSong() {
+  // Show album art, hide disco ball
+  document.getElementById('mysteryWrap').style.display = 'none';
+  document.getElementById('soundWaves').style.display = 'none';
+  document.getElementById('albumWrap').classList.add('visible');
   document.getElementById('songReveal').classList.remove('hidden');
   document.getElementById('revealBtn').classList.add('hidden');
   document.getElementById('pointBtns').classList.remove('hidden');
@@ -931,31 +1080,87 @@ function revealSong() {
   renderPointBtns();
 }
 
+// Per-player deltas for this round {playerName: {song: 0, artist: 0, penalty: 0}}
+let roundDeltas = {};
+
 function renderPointBtns() {
+  roundDeltas = {};
+  players.forEach(p => { roundDeltas[p.name] = { song: 0, artist: 0, penalty: 0 }; });
+
   const div = document.getElementById('pointBtns');
-  div.innerHTML = '<div style="font-size:0.75rem;font-weight:800;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">¿Quién adivinó?</div>';
+  div.innerHTML = '<div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem">¿Quién adivinó?</div>';
+
   players.forEach(p => {
-    const btn = document.createElement('button');
-    btn.className = 'point-btn';
-    btn.innerHTML = `<span>${AVATARS[p.avatar % AVATARS.length]} ${p.name}</span><span class="point-badge">+1 pt</span>`;
-    btn.onclick = () => awardPoint(p.name, btn);
-    div.appendChild(btn);
+    const row = document.createElement('div');
+    row.className = 'point-player-row';
+    row.id = `row-${p.name}`;
+    row.innerHTML = `
+      <div class="point-player-name">${AVATARS[p.avatar % AVATARS.length]} ${p.name}</div>
+      <div class="point-actions">
+        <button class="pa-btn plus" onclick="toggleDelta('${p.name}','song',this)" title="Adivinó canción">🎵+1</button>
+        <button class="pa-btn plus" onclick="toggleDelta('${p.name}','artist',this)" title="Adivinó artista">🎤+1</button>
+        <button class="pa-btn minus" onclick="toggleDelta('${p.name}','penalty',this)" title="Penalizar -1">❌-1</button>
+      </div>
+      <div class="point-score-badge" id="badge-${p.name}">${scores[p.name] || 0}</div>
+    `;
+    div.appendChild(row);
   });
 }
 
-function awardPoint(name, btn) {
-  scores[name] = (scores[name] || 0) + 1;
-  btn.style.borderColor = 'var(--green)';
-  btn.style.background = 'rgba(74,222,128,0.12)';
-  document.querySelectorAll('.point-btn').forEach(b => b.disabled = true);
+function toggleDelta(playerName, type, btn) {
+  const d = roundDeltas[playerName];
+  const wasActive = btn.classList.contains('active');
+
+  if (type === 'penalty') {
+    // Toggle penalty: 0 → -1 → -2 → 0
+    if (d.penalty === 0) { d.penalty = -1; btn.textContent = '❌-1'; btn.classList.add('active'); }
+    else if (d.penalty === -1) { d.penalty = -2; btn.textContent = '❌-2'; }
+    else { d.penalty = 0; btn.textContent = '❌-1'; btn.classList.remove('active'); }
+  } else {
+    // Toggle +1 on/off
+    if (wasActive) { d[type] = 0; btn.classList.remove('active'); }
+    else { d[type] = 1; btn.classList.add('active'); }
+  }
+
+  // Calculate total for this player: song + artist + penalty, clamped -2 to +2
+  const total = Math.max(-2, Math.min(2, d.song + d.artist + d.penalty));
+  const prev = scores[playerName] || 0;
+  // Update scores in real time
+  scores[playerName] = Math.max(0, prev);
+
+  // Show preview in badge
+  const net = d.song + d.artist + d.penalty;
+  const badge = document.getElementById(`badge-${playerName}`);
+  const base = scores[playerName] || 0;
+  const preview = Math.max(0, base + net);
+  badge.textContent = net !== 0 ? `${base} → ${preview}` : base;
+  badge.style.color = net > 0 ? '#4ade80' : net < 0 ? '#f87171' : 'var(--yellow)';
+
   renderScoreboard();
+  checkWinCondition();
+}
+
+function applyRoundScores() {
+  // Called on "Siguiente ronda" — actually commits the deltas
+  players.forEach(p => {
+    const d = roundDeltas[p.name] || { song: 0, artist: 0, penalty: 0 };
+    const net = d.song + d.artist + d.penalty;
+    scores[p.name] = Math.max(0, (scores[p.name] || 0) + net);
+  });
+}
+
+function checkWinCondition() {
   if (round >= MAX_ROUNDS || Object.values(scores).some(s => s >= 10)) {
     document.getElementById('nextBtn').textContent = '🏆 Ver Ganador';
-    document.getElementById('nextBtn').onclick = showWinner;
+    document.getElementById('nextBtn').onclick = () => { applyRoundScores(); showWinner(); };
+  } else {
+    document.getElementById('nextBtn').textContent = 'Siguiente ronda →';
+    document.getElementById('nextBtn').onclick = nextRound;
   }
 }
 
 async function nextRound() {
+  applyRoundScores();
   await stopPlayback();
   round++;
   document.getElementById('roundNum').textContent = round;
