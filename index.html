@@ -262,6 +262,36 @@
     to { transform: scaleY(1); opacity: 1; }
   }
 
+  /* Timer ring */
+  .timer-section {
+    display: flex; align-items: center; gap: 1.2rem;
+    margin: 0.2rem 0;
+  }
+  .timer-ring { width: 72px; height: 72px; position: relative; flex-shrink: 0; }
+  .timer-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .timer-ring .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4; }
+  .timer-ring .ring-progress {
+    fill: none; stroke: var(--purple); stroke-width: 4;
+    stroke-linecap: round; transition: stroke-dashoffset 0.4s linear, stroke 0.3s;
+  }
+  .timer-ring .ring-progress.warning { stroke: var(--yellow); }
+  .timer-ring .ring-progress.danger { stroke: #ef4444; }
+  .timer-value {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Boogaloo', cursive; font-size: 1.6rem; color: var(--text);
+  }
+  .timer-value.warning { color: var(--yellow); }
+  .timer-value.danger { color: #ef4444; }
+
+  .pause-btn {
+    width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05); color: var(--text); font-size: 1.4rem;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .pause-btn:hover { border-color: var(--purple); background: rgba(147,51,234,0.1); }
+  .pause-btn.paused { border-color: var(--green); background: rgba(74,222,128,0.1); }
+
   /* Spotify embed - hidden during play, revealed after */
   .embed-container {
     width: 100%; max-width: 360px;
@@ -450,6 +480,19 @@
     <div class="wave-bar"></div>
   </div>
 
+  <!-- Timer + Pause -->
+  <div class="timer-section" id="timerSection">
+    <div class="timer-ring">
+      <svg viewBox="0 0 42 42">
+        <circle class="ring-bg" cx="21" cy="21" r="18.5"/>
+        <circle class="ring-progress" id="timerCircle" cx="21" cy="21" r="18.5"
+          stroke-dasharray="116.24" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-value" id="timerValue">30</div>
+    </div>
+    <button class="pause-btn" id="pauseBtn" onclick="togglePause()">⏸</button>
+  </div>
+
   <!-- Spotify Embed (hidden during play, revealed after) -->
   <div class="embed-container" id="embedContainer">
     <div id="embed-iframe"></div>
@@ -512,6 +555,10 @@ const MAX_ROUNDS = 10;
 let usedTrackIds = new Set();
 let lastArtistName = null;
 let roundDeltas = {};
+let timerInterval = null;
+let timeLeft = 30;
+let isPaused = false;
+const ROUND_SECONDS = 30;
 
 // ========== SPOTIFY EMBED ==========
 let embedController = null;
@@ -535,6 +582,65 @@ function playTrack(uri) {
 
 function stopPlayback() {
   if (embedController) { try { embedController.pause(); } catch(e) {} }
+}
+
+// ========== TIMER ==========
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = ROUND_SECONDS;
+  isPaused = false;
+  updateTimerUI();
+  document.getElementById('pauseBtn').textContent = '⏸';
+  document.getElementById('pauseBtn').classList.remove('paused');
+
+  timerInterval = setInterval(() => {
+    if (isPaused) return;
+    timeLeft--;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      clearInterval(timerInterval);
+      // Auto-reveal when time runs out
+      if (!document.getElementById('songReveal').classList.contains('hidden')) return; // already revealed
+      revealSong();
+    }
+    updateTimerUI();
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const circle = document.getElementById('timerCircle');
+  const display = document.getElementById('timerValue');
+  const circumference = 2 * Math.PI * 18.5; // 116.24
+  const progress = timeLeft / ROUND_SECONDS;
+  circle.style.strokeDashoffset = circumference * (1 - progress);
+
+  circle.classList.remove('warning', 'danger');
+  display.classList.remove('warning', 'danger');
+  if (timeLeft <= 5) { circle.classList.add('danger'); display.classList.add('danger'); }
+  else if (timeLeft <= 10) { circle.classList.add('warning'); display.classList.add('warning'); }
+
+  display.textContent = timeLeft;
+}
+
+function togglePause() {
+  const btn = document.getElementById('pauseBtn');
+  const waves = document.getElementById('soundWaves');
+  if (isPaused) {
+    isPaused = false;
+    btn.textContent = '⏸';
+    btn.classList.remove('paused');
+    waves.style.animationPlayState = '';
+    document.querySelectorAll('.wave-bar').forEach(b => b.style.animationPlayState = 'running');
+    document.querySelectorAll('.disco-ball, .mystery-rays').forEach(el => el.style.animationPlayState = 'running');
+    if (embedController) { try { embedController.play(); } catch(e) {} }
+  } else {
+    isPaused = true;
+    btn.textContent = '▶';
+    btn.classList.add('paused');
+    document.querySelectorAll('.wave-bar').forEach(b => b.style.animationPlayState = 'paused');
+    document.querySelectorAll('.disco-ball, .mystery-rays').forEach(el => el.style.animationPlayState = 'paused');
+    if (embedController) { try { embedController.pause(); } catch(e) {} }
+  }
 }
 
 // ========== TRACK SELECTION ==========
@@ -747,10 +853,11 @@ function onSpinEnd(winningIdx) {
   // Start Spotify playback
   playTrack(track.uri);
 
-  // Small delay to let embed load, then show playing screen
+  // Small delay to let embed load, then show playing screen + start timer
   setTimeout(() => {
     hideLoading();
     goTo('playing');
+    startTimer();
     spinning = false;
     document.getElementById('spinBtn').disabled = false;
   }, 800);
@@ -768,6 +875,10 @@ function loadPlayingScreen(track, cat) {
   document.getElementById('nextBtn').textContent = 'Siguiente ronda →';
   document.getElementById('nextBtn').onclick = nextRound;
   document.getElementById('embedContainer').classList.remove('visible');
+  document.getElementById('timerSection').style.display = '';
+  // Reset animation states from potential pause
+  document.querySelectorAll('.wave-bar').forEach(b => b.style.animationPlayState = 'running');
+  document.querySelectorAll('.disco-ball, .mystery-rays').forEach(el => el.style.animationPlayState = 'running');
 
   // Category tag
   const tag = document.getElementById('playingCat');
@@ -781,9 +892,14 @@ function loadPlayingScreen(track, cat) {
 }
 
 function revealSong() {
+  // Stop timer
+  clearInterval(timerInterval);
+  isPaused = false;
+
   // Hide mystery, show song info
   document.getElementById('mysteryWrap').style.display = 'none';
   document.getElementById('soundWaves').style.display = 'none';
+  document.getElementById('timerSection').style.display = 'none';
   document.getElementById('songReveal').classList.remove('hidden');
   document.getElementById('revealBtn').classList.add('hidden');
   document.getElementById('pointBtns').classList.remove('hidden');
@@ -864,6 +980,7 @@ function checkWinCondition() {
 function nextRound() {
   applyRoundScores();
   stopPlayback();
+  clearInterval(timerInterval);
   round++;
   document.getElementById('roundNum').textContent = round;
   goTo('game');
@@ -890,6 +1007,7 @@ function renderScoreboard() {
 // ========== WINNER ==========
 function showWinner() {
   stopPlayback();
+  clearInterval(timerInterval);
   const sorted = players.map(p => ({ ...p, pts: scores[p.name] || 0 })).sort((a, b) => b.pts - a.pts);
   const w = sorted[0];
   document.getElementById('winnerName').textContent = w.name;
@@ -908,6 +1026,7 @@ function showWinner() {
 
 function resetGame() {
   scores = {}; round = 1;
+  clearInterval(timerInterval);
   players.forEach(p => scores[p.name] = 0);
   usedTrackIds.clear();
   lastArtistName = null;
