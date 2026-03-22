@@ -554,7 +554,12 @@
   .cons-btn:active { transform: scale(0.96); }
   .cons-icon { font-size: 1.4rem; line-height: 1; }
   .cons-main { font-size: 0.85rem; font-weight: 800; }
-  .cons-sub { font-size: 0.72rem; font-weight: 600; opacity: 0.75; }
+  .cons-sub { font-size: 0.7rem; font-weight: 600; opacity: 0.65; }
+  .cons-reward {
+    font-size: 0.72rem; font-weight: 800; opacity: 0.9;
+    border-top: 1px solid currentColor; padding-top: 0.25rem; margin-top: 0.1rem;
+    width: 100%; text-align: center; opacity: 0.7;
+  }
 
   .cons-one { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.4); color: #4ade80; }
   .cons-one:hover { background: rgba(74,222,128,0.22); border-color: #4ade80; }

@@ -88,34 +88,36 @@ function renderClasicConsequences() {
   const senderName = players[clsTurn].name;
 
   div.innerHTML = `
-    <div class="pts-label">¿Qué pasó con <b>${chosenName}</b>?</div>
+    <div class="pts-label">¿Qué adivinó <b>${chosenName}</b>?</div>
 
     <div class="cons-row">
       <button class="cons-btn cons-one" onclick="applyConsequence('one')">
         <span class="cons-icon">🎵</span>
-        <span class="cons-main">Solo uno</span>
-        <span class="cons-sub">él manda consecuencia</span>
+        <span class="cons-main">Una cosa</span>
+        <span class="cons-sub">canción o artista</span>
+        <span class="cons-reward">él elige quién paga</span>
       </button>
       <button class="cons-btn cons-both" onclick="applyConsequence('both')">
         <span class="cons-icon">🎵🎤</span>
-        <span class="cons-main">Los dos</span>
-        <span class="cons-sub">¡todos pagan!</span>
+        <span class="cons-main">Las dos</span>
+        <span class="cons-sub">canción + artista</span>
+        <span class="cons-reward">¡todos pagan!</span>
       </button>
     </div>
 
     <button class="cons-btn cons-none" onclick="applyConsequence('none')">
       <span class="cons-icon">🚫</span>
-      <span class="cons-main">No adivinó nada</span>
+      <span class="cons-main">Nada</span>
       <span class="cons-sub">${chosenName} paga</span>
     </button>
 
     <div class="cons-divider">¿Tampoco nadie más?</div>
 
     <button class="cons-btn cons-edge" onclick="applyConsequence('sender')">
-      🤷 Ni ${senderName} sabe — ${senderName} paga
+      🤷 Ni ${senderName} supo → ${senderName} paga
     </button>
     <button class="cons-btn cons-edge" onclick="applyConsequence('host')">
-      🤷‍♂️ Ni el host sabe — el host paga
+      🤷‍♂️ Ni el host supo → el host paga
     </button>
   `;
 }
