@@ -89,6 +89,11 @@ function spinWheel() {
 }
 
 function onSpinEnd(winningIdx) {
+  if (gameMode === 'clasico') {
+    onSpinEndClasico(winningIdx);
+    return;
+  }
+
   currentCat = wheelSegments[winningIdx];
   showLoading(`${currentCat.emoji} ${currentCat.name}`);
 

@@ -30,7 +30,18 @@
     <span>Powered by Spotify · Partidas ilimitadas</span>
   </div>
 
-  <button class="btn-primary" onclick="goTo('setup')">🎲 Crear Partida</button>
+  <div class="mode-btns">
+    <button class="mode-btn mode-competitive" onclick="selectMode('competitivo')">
+      <span class="mode-icon">🏆</span>
+      <span class="mode-name">Competitivo</span>
+      <span class="mode-desc">Todos gritan, suma puntos, hay un ganador</span>
+    </button>
+    <button class="mode-btn mode-clasico" onclick="selectMode('clasico')">
+      <span class="mode-icon">🎉</span>
+      <span class="mode-name">Clásico</span>
+      <span class="mode-desc">Turnos, consecuencias, pura fiesta</span>
+    </button>
+  </div>
 </div>
 
 <!-- ========== SETUP ========== -->
@@ -71,11 +82,18 @@
     <canvas id="wheel" width="300" height="300"></canvas>
   </div>
   <button class="spin-btn" id="spinBtn" onclick="spinWheel()">🎲 ¡GIRAR!</button>
+  <button class="end-game-btn hidden" id="endClasicBtn" onclick="endClasicGame()">Terminar partida</button>
 </div>
 
 <!-- ========== PLAYING ========== -->
 <div class="screen" id="playing">
   <div class="category-tag" id="playingCat">🎸 Rock Clásico</div>
+
+  <!-- Clásico: chooser (hidden by default) -->
+  <div class="chooser-section hidden" id="chooserSection">
+    <div class="chooser-label">¿A quién se la mandas?</div>
+    <div id="chooserBtns"></div>
+  </div>
 
   <!-- Mystery animation -->
   <div class="mystery-wrap" id="mysteryWrap">
@@ -123,6 +141,7 @@
 
   <button class="replay-btn hidden" id="replayBtn" onclick="replayTrack()">🔁 Escuchar de nuevo</button>
   <button class="reveal-btn" id="revealBtn" onclick="revealSong()">👁️ Revelar Canción</button>
+  <div class="consequence-announcement hidden" id="consequenceAnnouncement"></div>
   <div class="point-btns hidden" id="pointBtns"></div>
   <button class="next-btn hidden" id="nextBtn" onclick="nextRound()">Siguiente ronda →</button>
 </div>
@@ -137,10 +156,36 @@
   <button class="btn-primary" onclick="resetGame()" style="margin-top:0.5rem">🔄 Jugar de nuevo</button>
 </div>
 
+<!-- ========== CLÁSICO END ========== -->
+<div class="screen" id="clasico-end">
+  <div class="confetti-wrap">🎉</div>
+  <div style="font-size:1.1rem;color:var(--muted);font-weight:700">¡Fin de la partida!</div>
+  <div class="winner-name" style="font-size:2.2rem">Momentos épicos</div>
+  <div class="cls-rounds-badge">
+    <span id="clsRoundCount">0</span> rondas jugadas
+  </div>
+  <ul class="cls-memorable-list" id="clsMemorableList"></ul>
+  <button class="btn-primary" onclick="resetGame()" style="margin-top:0.5rem">🔄 Jugar de nuevo</button>
+</div>
+
+<!-- ========== CLÁSICO INSTRUCTIONS MODAL ========== -->
+<div class="cls-modal hidden" id="clasicModal">
+  <div class="cls-modal-card">
+    <div class="cls-modal-title">🎉 Modo Clásico</div>
+    <ol class="cls-modal-rules">
+      <li>El que tiene el turno elige a quién mandársela — <b>después de ver la categoría</b></li>
+      <li>Si el elegido adivina uno: él manda la consecuencia a quien quiera. Si adivina los dos: <b>todos pagan</b></li>
+      <li>Si no adivina nada: el elegido paga. El <b>turno pasa al elegido</b> para la siguiente ronda</li>
+    </ol>
+    <button class="btn-primary" onclick="closeClasicInstructions()" style="width:100%">¡Entendido! →</button>
+  </div>
+</div>
+
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <script src="js/catalog.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/wheel.js"></script>
+<script src="js/modes/clasico.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

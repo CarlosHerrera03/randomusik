@@ -8,6 +8,7 @@ let currentCat = null;
 let currentSong = null;
 const MAX_ROUNDS = 10;
 let roundScored = false;
+let gameMode = 'competitivo';
 
 // ========== NAVIGATION ==========
 function goTo(id) {
@@ -16,7 +17,11 @@ function goTo(id) {
   window.scrollTo(0, 0);
 
   if (id === 'game') {
-    renderScoreboard();
+    if (gameMode === 'clasico') {
+      renderClasicGameScreen();
+    } else {
+      renderScoreboard();
+    }
     document.getElementById('roundNum').textContent = round;
   }
 }
@@ -114,6 +119,8 @@ function loadPlayingScreen(track, cat) {
   document.getElementById('nextBtn').onclick = nextRound;
   document.getElementById('embedContainer').classList.remove('visible');
   document.getElementById('timerSection').style.display = '';
+  document.getElementById('chooserSection').classList.add('hidden');
+  document.getElementById('consequenceAnnouncement').classList.add('hidden');
   // Reset animation states from potential pause
   document.querySelectorAll('.wave-bar').forEach(b => b.style.animationPlayState = 'running');
   document.querySelectorAll('.disco-ball, .mystery-rays').forEach(el => el.style.animationPlayState = 'running');
@@ -166,8 +173,9 @@ function revealSong() {
   renderPointBtns();
 }
 
-// ========== SCORING — MODO COMPETITIVO ==========
+// ========== SCORING ==========
 function renderPointBtns() {
+  if (gameMode === 'clasico') { renderClasicConsequences(); return; }
   roundScored = false;
   const div = document.getElementById('pointBtns');
   div.innerHTML = '<div class="pts-label">¿Quién respondió primero?</div>';
@@ -231,6 +239,7 @@ function afterScoreApplied() {
 }
 
 function checkWinCondition() {
+  if (gameMode === 'clasico') return;
   if (round >= MAX_ROUNDS || Object.values(scores).some(s => s >= 10)) {
     document.getElementById('nextBtn').textContent = '🏆 Ver Ganador';
     document.getElementById('nextBtn').onclick = showWinner;
@@ -241,6 +250,7 @@ function checkWinCondition() {
 }
 
 function nextRound() {
+  if (gameMode === 'clasico') { nextRoundClasico(); return; }
   stopPlayback();
   clearInterval(timerInterval);
   round++;
@@ -292,11 +302,18 @@ function showWinner() {
 
 function resetGame() {
   scores = {}; round = 1; roundScored = false;
+  gameMode = 'competitivo';
   clearInterval(timerInterval);
   players.forEach(p => scores[p.name] = 0);
   usedTrackIds.clear();
   lastArtistName = null;
+  document.getElementById('endClasicBtn').classList.add('hidden');
   goTo('home');
+}
+
+function selectMode(mode) {
+  gameMode = mode;
+  goTo('setup');
 }
 
 function startGame() {
@@ -306,8 +323,23 @@ function startGame() {
   lastArtistName = null;
   players.forEach(p => scores[p.name] = 0);
   buildWheel();
-  renderScoreboard();
-  goTo('game');
+
+  if (gameMode === 'clasico') {
+    initClasico();
+    goTo('game');
+    showClasicInstructions();
+  } else {
+    renderScoreboard();
+    goTo('game');
+  }
+}
+
+function showClasicInstructions() {
+  document.getElementById('clasicModal').classList.remove('hidden');
+}
+
+function closeClasicInstructions() {
+  document.getElementById('clasicModal').classList.add('hidden');
 }
 
 // ========== INIT ==========
