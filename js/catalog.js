@@ -21,10 +21,13 @@ let lastArtistName = null;
 function getTrackFromCatalog(cat) {
   const catData = SONG_CATALOG[cat.name];
   if (!catData) return null;
-  let pool = catData[difficulty] || [];
-  if (!pool.length) pool = catData["normal"] || [];
-  if (!pool.length) pool = catData["easy"] || [];
-  if (!pool.length) return null;
+  // Merge all pools and filter by popularity score
+  const allTracks = [...(catData.easy||[]), ...(catData.normal||[]), ...(catData.hard||[])];
+  let pool;
+  if (difficulty === 'easy')        pool = allTracks.filter(t => t.popularity >= 80);
+  else if (difficulty === 'hard')   pool = allTracks.filter(t => t.popularity < 70);
+  else                              pool = allTracks.filter(t => t.popularity >= 70 && t.popularity < 80);
+  if (!pool.length) pool = allTracks; // fallback si la categoría no tiene tracks en ese rango
 
   const available = pool.filter(t => !usedTrackIds.has(t.uri));
   const finalPool = available.length > 0 ? available : pool;
