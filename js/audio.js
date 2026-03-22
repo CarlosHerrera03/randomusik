@@ -33,6 +33,15 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
           onPlaybackStartedCb = null;
           cb();
         }
+        return;
+      }
+      // Spotify stopped the track naturally (preview < 30s) — treat as timer end
+      if (!waitingForPlayback && !isPaused && e.data.isPaused && timeLeft > 0) {
+        clearInterval(timerInterval);
+        timeLeft = 0;
+        updateTimerUI();
+        try { embedController.setVolume(1); } catch(err) {}
+        showReplayOption();
       }
     });
   });
