@@ -87,23 +87,37 @@ function renderClasicConsequences() {
   const chosenName = players[clsChosen].name;
   const senderName = players[clsTurn].name;
 
-  div.innerHTML = `<div class="pts-label">¿Qué pasó?</div>`;
+  div.innerHTML = `
+    <div class="pts-label">¿Qué pasó con <b>${chosenName}</b>?</div>
 
-  const options = [
-    { type: 'one',    label: `🎵 ${chosenName} adivino uno` },
-    { type: 'both',   label: `🎵🎤 ${chosenName} adivino los dos` },
-    { type: 'none',   label: `🚫 ${chosenName} no adivinó nada` },
-    { type: 'sender', label: `🤷 Nadie supo (ni ${senderName})` },
-    { type: 'host',   label: `🤷‍♂️ Ni el host sabe` },
-  ];
+    <div class="cons-row">
+      <button class="cons-btn cons-one" onclick="applyConsequence('one')">
+        <span class="cons-icon">🎵</span>
+        <span class="cons-main">Solo uno</span>
+        <span class="cons-sub">él manda consecuencia</span>
+      </button>
+      <button class="cons-btn cons-both" onclick="applyConsequence('both')">
+        <span class="cons-icon">🎵🎤</span>
+        <span class="cons-main">Los dos</span>
+        <span class="cons-sub">¡todos pagan!</span>
+      </button>
+    </div>
 
-  options.forEach(({ type, label }) => {
-    const btn = document.createElement('button');
-    btn.className = 'player-pick-btn';
-    btn.textContent = label;
-    btn.onclick = () => applyConsequence(type);
-    div.appendChild(btn);
-  });
+    <button class="cons-btn cons-none" onclick="applyConsequence('none')">
+      <span class="cons-icon">🚫</span>
+      <span class="cons-main">No adivinó nada</span>
+      <span class="cons-sub">${chosenName} paga</span>
+    </button>
+
+    <div class="cons-divider">¿Tampoco nadie más?</div>
+
+    <button class="cons-btn cons-edge" onclick="applyConsequence('sender')">
+      🤷 Ni ${senderName} sabe — ${senderName} paga
+    </button>
+    <button class="cons-btn cons-edge" onclick="applyConsequence('host')">
+      🤷‍♂️ Ni el host sabe — el host paga
+    </button>
+  `;
 }
 
 function applyConsequence(type) {
