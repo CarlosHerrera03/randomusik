@@ -524,6 +524,12 @@
     background: linear-gradient(135deg, var(--pink), var(--purple));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
+  .cls-modal-concept {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 0.9rem 1rem;
+    font-size: 0.88rem; font-weight: 600; color: var(--muted); line-height: 1.6;
+  }
+  .cls-modal-concept strong { color: var(--text); font-weight: 800; }
   .cls-modal-rules {
     display: flex; flex-direction: column; gap: 0.8rem;
     list-style: none; counter-reset: rule-counter;

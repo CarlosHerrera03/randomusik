@@ -110,15 +110,6 @@ function renderClasicConsequences() {
       <span class="cons-main">Nada</span>
       <span class="cons-sub">${chosenName} paga</span>
     </button>
-
-    <div class="cons-divider">¿Tampoco nadie más?</div>
-
-    <button class="cons-btn cons-edge" onclick="applyConsequence('sender')">
-      🤷 Ni ${senderName} supo → ${senderName} paga
-    </button>
-    <button class="cons-btn cons-edge" onclick="applyConsequence('host')">
-      🤷‍♂️ Ni el host supo → el host paga
-    </button>
   `;
 }
 
