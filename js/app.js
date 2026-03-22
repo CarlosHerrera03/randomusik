@@ -7,7 +7,7 @@ let round = 1;
 let currentCat = null;
 let currentSong = null;
 const MAX_ROUNDS = 10;
-let roundDeltas = {};
+let roundScored = false;
 
 // ========== NAVIGATION ==========
 function goTo(id) {
@@ -140,7 +140,8 @@ function revealSong() {
   document.getElementById('songReveal').classList.remove('hidden');
   document.getElementById('revealBtn').classList.add('hidden');
   document.getElementById('pointBtns').classList.remove('hidden');
-  document.getElementById('nextBtn').classList.remove('hidden');
+  // nextBtn hidden — aparece solo después de registrar el resultado
+  document.getElementById('nextBtn').classList.add('hidden');
 
   // Show the Spotify embed (now reveals the track visually)
   document.getElementById('embedContainer').classList.add('visible');
@@ -148,65 +149,74 @@ function revealSong() {
   renderPointBtns();
 }
 
-// ========== SCORING ==========
+// ========== SCORING — MODO COMPETITIVO ==========
 function renderPointBtns() {
-  roundDeltas = {};
-  players.forEach(p => { roundDeltas[p.name] = { song: 0, artist: 0, penalty: 0 }; });
-
+  roundScored = false;
   const div = document.getElementById('pointBtns');
-  div.innerHTML = '<div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem">¿Quién adivinó?</div>';
+  div.innerHTML = '<div class="pts-label">¿Quién respondió primero?</div>';
+
   players.forEach(p => {
-    const row = document.createElement('div');
-    row.className = 'point-player-row';
-    row.innerHTML = `
-      <div class="point-player-name">${AVATARS[p.avatar % AVATARS.length]} ${p.name}</div>
-      <div class="point-actions">
-        <button class="pa-btn plus" onclick="toggleDelta('${esc(p.name)}','song',this)">🎵+1</button>
-        <button class="pa-btn plus" onclick="toggleDelta('${esc(p.name)}','artist',this)">🎤+1</button>
-        <button class="pa-btn minus" onclick="toggleDelta('${esc(p.name)}','penalty',this)">❌-1</button>
-      </div>
-      <div class="point-score-badge" id="badge-${esc(p.name)}">${scores[p.name] || 0}</div>
-    `;
-    div.appendChild(row);
+    const btn = document.createElement('button');
+    btn.className = 'player-pick-btn';
+    btn.innerHTML = `${AVATARS[p.avatar % AVATARS.length]} ${p.name}`;
+    btn.onclick = () => showAnswerOptions(p.name);
+    div.appendChild(btn);
   });
+
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'player-pick-btn nobody-btn';
+  noneBtn.textContent = '😶 Nadie adivinó  (−1 a todos)';
+  noneBtn.onclick = applyNobodyGuessed;
+  div.appendChild(noneBtn);
 }
 
-function esc(s) { return s.replace(/'/g, "\\'"); }
+function showAnswerOptions(playerName) {
+  const div = document.getElementById('pointBtns');
+  div.innerHTML = `<div class="pts-label">¿Qué acertó <b>${playerName}</b>?</div>`;
 
-function toggleDelta(playerName, type, btn) {
-  const d = roundDeltas[playerName];
-  if (type === 'penalty') {
-    if (d.penalty === 0) { d.penalty = -1; btn.textContent = '❌-1'; btn.classList.add('active'); }
-    else if (d.penalty === -1) { d.penalty = -2; btn.textContent = '❌-2'; }
-    else { d.penalty = 0; btn.textContent = '❌-1'; btn.classList.remove('active'); }
-  } else {
-    if (btn.classList.contains('active')) { d[type] = 0; btn.classList.remove('active'); }
-    else { d[type] = 1; btn.classList.add('active'); }
-  }
+  const b2 = document.createElement('button');
+  b2.className = 'player-pick-btn';
+  b2.innerHTML = '🎵🎤 Canción + Artista &nbsp;<b>+2</b>';
+  b2.onclick = () => applyScore(playerName, 2);
+  div.appendChild(b2);
 
-  const net = d.song + d.artist + d.penalty;
-  const badge = document.getElementById(`badge-${playerName}`);
-  const base = scores[playerName] || 0;
-  const preview = Math.max(0, base + net);
-  badge.textContent = net !== 0 ? `${base} → ${preview}` : base;
-  badge.style.color = net > 0 ? '#4ade80' : net < 0 ? '#f87171' : 'var(--yellow)';
+  const b1 = document.createElement('button');
+  b1.className = 'player-pick-btn';
+  b1.innerHTML = '🎵 Solo uno &nbsp;<b>+1</b>';
+  b1.onclick = () => applyScore(playerName, 1);
+  div.appendChild(b1);
 
+  const back = document.createElement('button');
+  back.className = 'player-pick-btn back-pick-btn';
+  back.textContent = '← Volver';
+  back.onclick = renderPointBtns;
+  div.appendChild(back);
+}
+
+function applyScore(playerName, delta) {
+  scores[playerName] = Math.max(0, (scores[playerName] || 0) + delta);
+  afterScoreApplied();
+}
+
+function applyNobodyGuessed() {
+  players.forEach(p => {
+    scores[p.name] = Math.max(0, (scores[p.name] || 0) - 1);
+  });
+  afterScoreApplied();
+}
+
+function afterScoreApplied() {
+  roundScored = true;
   renderScoreboard();
+  document.getElementById('pointBtns').classList.add('hidden');
   checkWinCondition();
-}
-
-function applyRoundScores() {
-  players.forEach(p => {
-    const d = roundDeltas[p.name] || { song: 0, artist: 0, penalty: 0 };
-    const net = d.song + d.artist + d.penalty;
-    scores[p.name] = Math.max(0, (scores[p.name] || 0) + net);
-  });
+  document.getElementById('nextBtn').classList.remove('hidden');
 }
 
 function checkWinCondition() {
   if (round >= MAX_ROUNDS || Object.values(scores).some(s => s >= 10)) {
     document.getElementById('nextBtn').textContent = '🏆 Ver Ganador';
-    document.getElementById('nextBtn').onclick = () => { applyRoundScores(); showWinner(); };
+    document.getElementById('nextBtn').onclick = showWinner;
   } else {
     document.getElementById('nextBtn').textContent = 'Siguiente ronda →';
     document.getElementById('nextBtn').onclick = nextRound;
@@ -214,7 +224,6 @@ function checkWinCondition() {
 }
 
 function nextRound() {
-  applyRoundScores();
   stopPlayback();
   clearInterval(timerInterval);
   round++;
@@ -231,9 +240,13 @@ function renderScoreboard() {
     const pts = scores[p.name] || 0;
     const card = document.createElement('div');
     card.className = 'score-card' + (pts === maxPts && pts > 0 ? ' winner-glow' : '');
+    const dots = Array.from({ length: 10 }, (_, i) =>
+      `<span class="ladder-dot${i < pts ? ' filled' : ''}"></span>`
+    ).join('');
     card.innerHTML = `
       <div class="score-avatar" style="background:${AVATAR_COLORS[p.avatar % AVATAR_COLORS.length]}">${AVATARS[p.avatar % AVATARS.length]}</div>
       <div class="score-name">${p.name}</div>
+      <div class="ladder-dots">${dots}</div>
       <div class="score-pts">${pts}</div>
     `;
     sb.appendChild(card);
@@ -261,7 +274,7 @@ function showWinner() {
 }
 
 function resetGame() {
-  scores = {}; round = 1;
+  scores = {}; round = 1; roundScored = false;
   clearInterval(timerInterval);
   players.forEach(p => scores[p.name] = 0);
   usedTrackIds.clear();
@@ -271,7 +284,7 @@ function resetGame() {
 
 function startGame() {
   if (selectedCats.length < 3) { showToast('Selecciona al menos 3 categorías'); return; }
-  scores = {}; round = 1;
+  scores = {}; round = 1; roundScored = false;
   usedTrackIds.clear();
   lastArtistName = null;
   players.forEach(p => scores[p.name] = 0);

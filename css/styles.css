@@ -382,3 +382,31 @@
   .final-pts { font-family: 'Boogaloo', cursive; font-size: 1.4rem; color: var(--yellow); }
 
   .hidden { display: none !important; }
+
+  /* MODO COMPETITIVO — SCORING UI */
+  .pts-label {
+    font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 0.5rem; text-align: center;
+  }
+  .pts-label b { color: var(--text); text-transform: none; letter-spacing: 0; font-size: 0.95rem; }
+
+  .player-pick-btn {
+    width: 100%; background: var(--card); border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 0.85rem 1rem; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 700;
+    color: var(--text); text-align: center; transition: all 0.15s; margin-bottom: 0.4rem;
+    display: block;
+  }
+  .player-pick-btn:hover { border-color: var(--purple); background: rgba(147,51,234,0.1); }
+  .player-pick-btn:active { transform: scale(0.97); }
+  .player-pick-btn b { color: var(--green); }
+  .nobody-btn { border-color: rgba(248,113,113,0.3); color: var(--muted); }
+  .nobody-btn:hover { border-color: #f87171; background: rgba(248,113,113,0.08); color: var(--text); }
+  .back-pick-btn { color: var(--muted); border-color: transparent; font-size: 0.9rem; padding: 0.5rem; }
+  .back-pick-btn:hover { border-color: rgba(255,255,255,0.1); color: var(--text); }
+
+  /* ESCALERA DOTS */
+  .ladder-dots { display: flex; gap: 3px; justify-content: center; margin: 3px 0 1px; flex-wrap: wrap; max-width: 80px; }
+  .ladder-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.12); flex-shrink: 0; }
+  .ladder-dot.filled { background: var(--yellow); box-shadow: 0 0 4px rgba(251,191,36,0.6); }
+  .score-pts { font-family: 'Boogaloo', cursive; font-size: 1rem; color: var(--muted); line-height: 1; }
