@@ -36,21 +36,23 @@ function drawWheel(angle) {
   ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('🎵', cx, cy);
   // Labels
+  const fEmoji = n <= 5 ? 16 : n <= 6 ? 14 : 11;
+  const fText  = n <= 5 ? 13 : n <= 6 ? 12 : 9;
   wheelSegments.forEach((seg, i) => {
     const mid = angle + i * arc - Math.PI / 2 + arc / 2;
-    const lx = cx + r * 0.62 * Math.cos(mid);
-    const ly = cy + r * 0.62 * Math.sin(mid);
+    const lx = cx + r * 0.63 * Math.cos(mid);
+    const ly = cy + r * 0.63 * Math.sin(mid);
     ctx.save(); ctx.translate(lx, ly); ctx.rotate(mid + Math.PI / 2);
     ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 5;
     const words = seg.name.split(' ');
     if (words.length > 1 && seg.name.length > 10) {
-      ctx.font = 'bold 10px Nunito,sans-serif'; ctx.fillText(seg.emoji, 0, -9);
-      ctx.font = 'bold 9px Nunito,sans-serif'; ctx.fillText(words[0], 0, 2);
-      ctx.fillText(words.slice(1).join(' '), 0, 12);
+      ctx.font = `bold ${fEmoji}px Nunito,sans-serif`; ctx.fillText(seg.emoji, 0, -11);
+      ctx.font = `bold ${fText}px Nunito,sans-serif`; ctx.fillText(words[0], 0, 3);
+      ctx.fillText(words.slice(1).join(' '), 0, 3 + fText + 1);
     } else {
-      ctx.font = 'bold 10px Nunito,sans-serif'; ctx.fillText(seg.emoji, 0, -7);
-      ctx.font = 'bold 9px Nunito,sans-serif'; ctx.fillText(seg.name, 0, 5);
+      ctx.font = `bold ${fEmoji}px Nunito,sans-serif`; ctx.fillText(seg.emoji, 0, -8);
+      ctx.font = `bold ${fText}px Nunito,sans-serif`; ctx.fillText(seg.name, 0, 8);
     }
     ctx.restore();
   });
@@ -95,15 +97,12 @@ function onSpinEnd(winningIdx) {
   currentSong = track;
   loadPlayingScreen(track, currentCat);
 
-  // Start Spotify playback
-  playTrack(track.uri);
-
-  // Small delay to let embed load, then show playing screen + start timer
-  setTimeout(() => {
+  // Start Spotify playback — timer starts only when audio actually plays
+  playTrack(track.uri, () => {
     hideLoading();
     goTo('playing');
     startTimer();
     spinning = false;
     document.getElementById('spinBtn').disabled = false;
-  }, 800);
+  });
 }

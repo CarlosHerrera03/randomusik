@@ -107,6 +107,7 @@ function loadPlayingScreen(track, cat) {
   document.getElementById('soundWaves').style.display = '';
   document.getElementById('songReveal').classList.add('hidden');
   document.getElementById('revealBtn').classList.remove('hidden');
+  document.getElementById('replayBtn').classList.add('hidden');
   document.getElementById('pointBtns').classList.add('hidden');
   document.getElementById('nextBtn').classList.add('hidden');
   document.getElementById('nextBtn').textContent = 'Siguiente ronda →';
@@ -126,6 +127,22 @@ function loadPlayingScreen(track, cat) {
   // Song info
   document.getElementById('songName').textContent = track.name;
   document.getElementById('artistName').textContent = track.artist || '';
+}
+
+function showReplayOption() {
+  document.getElementById('timerSection').style.display = 'none';
+  document.getElementById('soundWaves').style.display = 'none';
+  document.getElementById('replayBtn').classList.remove('hidden');
+}
+
+function replayTrack() {
+  if (!currentSong) return;
+  document.getElementById('replayBtn').classList.add('hidden');
+  document.getElementById('timerSection').style.display = '';
+  document.getElementById('soundWaves').style.display = '';
+  document.querySelectorAll('.wave-bar').forEach(b => b.style.animationPlayState = 'running');
+  document.querySelectorAll('.disco-ball, .mystery-rays').forEach(el => el.style.animationPlayState = 'running');
+  playTrack(currentSong.uri, () => { startTimer(); });
 }
 
 function revealSong() {

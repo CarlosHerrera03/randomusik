@@ -307,6 +307,14 @@
   .song-name { font-family: 'Boogaloo', cursive; font-size: 1.8rem; color: var(--text); line-height: 1.1; margin-bottom: 0.3rem; }
   .artist-name { font-size: 1rem; font-weight: 700; color: var(--pink); }
 
+  .replay-btn {
+    background: rgba(34,211,238,0.12); border: 2px solid rgba(34,211,238,0.4);
+    border-radius: 50px; padding: 0.9rem 2rem;
+    font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900;
+    color: var(--cyan); cursor: pointer; transition: all 0.2s; width: 100%; max-width: 360px;
+  }
+  .replay-btn:hover { background: rgba(34,211,238,0.22); transform: translateY(-2px); }
+
   .reveal-btn {
     background: linear-gradient(135deg, var(--yellow), var(--orange));
     border: none; border-radius: 50px; padding: 0.9rem 2rem;
