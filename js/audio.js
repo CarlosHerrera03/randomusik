@@ -22,11 +22,12 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 
     controller.addListener('playback_update', (e) => {
       if (!e.data.isPaused) {
-        currentPositionMs = e.data.position; // position in ms
+        currentPositionMs = e.data.position;
       }
       if (waitingForPlayback && !e.data.isPaused && e.data.position > 0) {
         waitingForPlayback = false;
         clearTimeout(playbackFallbackTimer);
+        fadeIn(300);
         if (onPlaybackStartedCb) {
           const cb = onPlaybackStartedCb;
           onPlaybackStartedCb = null;
@@ -37,11 +38,41 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   });
 };
 
+// ========== VOLUME FADES ==========
+function fadeIn(duration) {
+  if (!embedController) return;
+  let vol = 0;
+  try { embedController.setVolume(0); } catch(e) {}
+  const steps = 8;
+  const interval = duration / steps;
+  const tick = setInterval(() => {
+    vol = Math.min(1, vol + 1 / steps);
+    try { embedController.setVolume(vol); } catch(e) {}
+    if (vol >= 1) clearInterval(tick);
+  }, interval);
+}
+
+function fadeOut(duration, onDone) {
+  if (!embedController) { if (onDone) onDone(); return; }
+  let vol = 1;
+  const steps = 8;
+  const interval = duration / steps;
+  const tick = setInterval(() => {
+    vol = Math.max(0, vol - 1 / steps);
+    try { embedController.setVolume(vol); } catch(e) {}
+    if (vol <= 0) {
+      clearInterval(tick);
+      if (onDone) onDone();
+    }
+  }, interval);
+}
+
 function playTrack(uri, onStarted) {
   if (!embedController) { console.warn('Embed not ready'); return; }
   waitingForPlayback = true;
   currentPositionMs = 0;
   onPlaybackStartedCb = onStarted || null;
+  try { embedController.setVolume(0); } catch(e) {}
   embedController.loadUri(uri);
   setTimeout(() => embedController.play(), 400);
 
@@ -52,6 +83,7 @@ function playTrack(uri, onStarted) {
       if (waitingForPlayback) {
         waitingForPlayback = false;
         onPlaybackStartedCb = null;
+        fadeIn(300);
         onStarted();
       }
     }, 8000);
@@ -78,8 +110,11 @@ function startTimer() {
       timeLeft = 0;
       updateTimerUI();
       clearInterval(timerInterval);
-      stopPlayback();
-      showReplayOption();
+      fadeOut(300, () => {
+        stopPlayback();
+        try { embedController.setVolume(1); } catch(e) {}
+        showReplayOption();
+      });
       return;
     }
     updateTimerUI();
